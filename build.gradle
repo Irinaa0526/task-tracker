@@ -1,0 +1,37 @@
+plugins {
+    id 'java'
+    id "io.spring.dependency-management" version "1.1.0"
+    id 'org.springframework.boot' version '2.5.3'
+}
+
+group 'my.proj'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+// Spring
+dependencies {
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web'
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
+
+}
+
+// Postgres
+dependencies {
+    implementation group: 'org.postgresql', name: 'postgresql', version: '42.5.4'
+}
+
+// Lombok
+dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.26'
+    annotationProcessor 'org.projectlombok:lombok:1.18.26'
+    testCompileOnly 'org.projectlombok:lombok:1.18.26'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.26'
+}
+
+// Test
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
