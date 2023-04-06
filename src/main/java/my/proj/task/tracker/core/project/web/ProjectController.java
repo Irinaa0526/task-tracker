@@ -6,8 +6,10 @@ import my.proj.task.tracker.core.project.ProjectRepo;
 import my.proj.task.tracker.core.project.converter.ProjectToProjectViewConverter;
 import my.proj.task.tracker.error.BadRequestException;
 import my.proj.task.tracker.error.NotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,65 +31,71 @@ public class ProjectController {
     public static final String CREATE_OR_UPDATE_PROJECT = "/api/projects";
 
     @GetMapping(FETCH_PROJECTS)
+    @Transactional
     public List<ProjectView> fetchProjects(
             @RequestParam(value = "prefix_name", required = false) Optional<String> optionalPrefixName) {
 
+        // проверяем фильтр на пустоту (если пустой - optionalPrefixName будет пустым)
         optionalPrefixName = optionalPrefixName.filter(prefixName -> !prefixName.trim().isEmpty());
 
         Stream<Project> projectStream = optionalPrefixName
                 .map(projectRepo::streamAllByNameStartsWithIgnoreCase)
-                .orElseGet(projectRepo::streamAll);
+                .orElseGet(projectRepo::streamAllBy);
 
         return projectStream
                 .map(projectToProjectViewConverter::convert)
                 .collect(Collectors.toList());
     }
 
-    @PostMapping(CREATE_PROJECT)
-    public ProjectView createProject(@RequestParam("project_name") String projectName) {
-
-        if (projectName.trim().isEmpty()) {
-            throw new BadRequestException("Name can't be empty");
-        }
-
-        projectRepo
-                .findByName(projectName)
-                .ifPresent(project -> {
-                    throw new BadRequestException(String.format("Project \"%s\" already exists", projectName));
-                });
-        Project project = projectRepo.saveAndFlush(
-                Project.builder()
-                    .name(projectName)
-                    .build()
-        );
-
-        return projectToProjectViewConverter.convert(project);
-    }
-
-    @PatchMapping(EDIT_PROJECT)
-    public ProjectView editProject(
-            @PathVariable("project_id") Long projectId,
-            @RequestParam("project_name") String projectName) {
-
-        if (projectName.trim().isEmpty()) {
-            throw new BadRequestException("Name can't be empty");
-        }
-
-        Project project = getProjectOrThrowException(projectId);
-
-        projectRepo
-                .findByName(projectName)
-                .filter(anotherProject -> !Objects.equals(anotherProject.getId(), projectId))
-                .ifPresent(anotherProject -> {
-                    throw new BadRequestException(String.format("Project \"%s\" already exists", projectName));
-                });
-
-        project.setName(projectName);
-
-        project = projectRepo.saveAndFlush(project);
-
-        return projectToProjectViewConverter.convert(project);
-    }
+//    @PostMapping(CREATE_PROJECT)
+//    public ProjectView createProject(@RequestParam("project_name") String projectName) {
+//
+//        if (projectName.trim().isEmpty()) {
+//            throw new BadRequestException("Name can't be empty");
+//        }
+//
+//        // проверка на существование проекта с введенным именем
+//        projectRepo
+//                .findByName(projectName)
+//                .ifPresent(project -> {
+//                    throw new BadRequestException(String.format("Project \"%s\" already exists", projectName));
+//                });
+//
+//        //создание проекта
+//        Project project = projectRepo.saveAndFlush(
+//                Project.builder()
+//                    .name(projectName)
+//                    .build()
+//        );
+//
+//        return projectToProjectViewConverter.convert(project);
+//    }
+//
+//    @PatchMapping(EDIT_PROJECT)
+//    public ProjectView editProject(
+//            @PathVariable("project_id") Long projectId,
+//            @RequestParam("project_name") String projectName) {
+//
+//        if (projectName.trim().isEmpty()) {
+//            throw new BadRequestException("Name can't be empty");
+//        }
+//
+//        Project project = getProjectOrThrowException(projectId);
+//
+//        // проверяем существует ли уже проект с введенным именем
+//        projectRepo
+//                .findByName(projectName)
+//                .filter(anotherProject -> !Objects.equals(anotherProject.getId(), projectId))
+//                .ifPresent(anotherProject -> {
+//                    throw new BadRequestException(String.format("Project \"%s\" already exists", projectName));
+//                });
+//
+//        project.setName(projectName);
+//
+//        project = projectRepo.saveAndFlush(project);
+//
+//        return projectToProjectViewConverter.convert(project);
+//    }
 
     @PutMapping(CREATE_OR_UPDATE_PROJECT)
     public ProjectView createOrUpdateProject(
@@ -98,16 +106,18 @@ public class ProjectController {
             throw new BadRequestException("Name can't be empty");
         }
 
+        // если не передали id, значит операция создания проекта, иначе - редактирование
         boolean isCreate = !optionalProjectId.isPresent();
 
         Project project;
 
-        if(isCreate) {
+        if (isCreate) {
             projectRepo
                     .findByName(projectName)
                     .ifPresent(proj -> {
-                        throw new BadRequestException(String.format("Project \"%s\" already exists", projectName));
+                        throw new BadRequestException(String.format("Project with name '%s' already exists", projectName));
                     });
+
             project = projectRepo.saveAndFlush(
                     Project.builder()
                             .name(projectName)
@@ -121,10 +131,11 @@ public class ProjectController {
                     .findByName(projectName)
                     .filter(anotherProject -> !Objects.equals(anotherProject.getId(), optionalProjectId))
                     .ifPresent(anotherProject -> {
-                        throw new BadRequestException(String.format("Project \"%s\" already exists", projectName));
+                        throw new BadRequestException(String.format("Project with name '%s' already exists", projectName));
                     });
 
             project.setName(projectName);
+            project.setUpdatedAt(Instant.now());
             project = projectRepo.saveAndFlush(project);
         }
         return projectToProjectViewConverter.convert(project);
@@ -143,7 +154,7 @@ public class ProjectController {
         return projectRepo
                 .findById(projectId)
                 .orElseThrow(() ->
-                        new NotFoundException(String.format("Project with \"%s\" doesn't exists", projectId))
+                        new NotFoundException(String.format("Project with id = %s doesn't exists", projectId))
                 );
     }
 }

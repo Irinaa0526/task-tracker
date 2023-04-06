@@ -9,7 +9,7 @@ public interface ProjectRepo extends JpaRepository<Project, Long> {
 
     Optional<Project> findByName(String name);
 
-    Stream<Project> streamAll();
+    Stream<Project> streamAllBy();
 
     Stream<Project> streamAllByNameStartsWithIgnoreCase(String prefixName);
 }
