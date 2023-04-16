@@ -18,7 +18,6 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @Column(unique = true)
     private String name;
 
     @Builder.Default
