@@ -12,6 +12,7 @@ public class TaskToTaskViewConverter {
                 .id(task.getId())
                 .name(task.getName())
                 .createdAt(task.getCreatedAt())
+                .updatedAt(task.getUpdatedAt())
                 .description(task.getDescription())
                 .build();
     }

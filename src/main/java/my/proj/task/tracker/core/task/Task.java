@@ -23,6 +23,9 @@ public class Task {
     @Builder.Default
     private Instant createdAt = Instant.now();
 
+    @Builder.Default
+    private Instant updatedAt = Instant.now();
+
     private String description;
 
 }

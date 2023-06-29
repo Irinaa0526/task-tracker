@@ -93,7 +93,7 @@ public class TaskStateController {
             throw new BadRequestException("Task state name can't be empty");
         }
 
-        TaskState taskState = getTaskStateOrThrowException(taskStateId);
+        TaskState taskState = controllerHelper.getTaskStateOrThrowException(taskStateId);
 
         // проверяем, что внутри проекта нет таск стейта с таким же именем (изменяемый таск стейт не в счет)
         taskStateRepo
@@ -114,7 +114,7 @@ public class TaskStateController {
             @PathVariable(name = "task_state_id") Long taskStateId,
             @RequestParam(name = "left_task_state_id", required = false) Optional<Long> optionalLeftTaskStateId) {
 
-        TaskState changeTaskState = getTaskStateOrThrowException(taskStateId);
+        TaskState changeTaskState = controllerHelper.getTaskStateOrThrowException(taskStateId);
         Project project = changeTaskState.getProject();
 
         Optional<Long> optionalOldLeftTaskStateId = changeTaskState.getLeftTaskState().map(TaskState::getId);
@@ -131,7 +131,7 @@ public class TaskStateController {
                         throw new BadRequestException("Left task state id equals changed task state id");
                     }
 
-                    TaskState leftTaskStateEntity = getTaskStateOrThrowException(leftTaskStateId);
+                    TaskState leftTaskStateEntity = controllerHelper.getTaskStateOrThrowException(leftTaskStateId);
 
                     // проверяем что найденный таск стейт находится в одном проекте с изменяемым таск стейтом
                     if (!project.getId().equals(leftTaskStateEntity.getProject().getId())) {
@@ -187,11 +187,8 @@ public class TaskStateController {
 
     @DeleteMapping(DELETE_TASK_STATE)
     public Boolean deleteTaskState(@PathVariable(name = "task_state_id") Long taskStateId) {
-
-        TaskState changeTaskState = getTaskStateOrThrowException(taskStateId);
-
+        TaskState changeTaskState = controllerHelper.getTaskStateOrThrowException(taskStateId);
         replaceOldTaskStatePosition(changeTaskState);
-
         taskStateRepo.delete(changeTaskState);
 
         return true;
@@ -215,13 +212,4 @@ public class TaskStateController {
                     taskStateRepo.saveAndFlush(it);
                 });
     }
-
-    public TaskState getTaskStateOrThrowException(Long taskStateId) {
-        return taskStateRepo
-                .findById(taskStateId)
-                .orElseThrow(() ->
-                        new NotFoundException(String.format("Task state with id = %s doesn't exists", taskStateId))
-                );
-    }
-
 }

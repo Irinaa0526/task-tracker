@@ -22,6 +22,9 @@ public class TaskView {
     private Instant createdAt;
 
     @NonNull
+    @JsonProperty("updated_at")
+    private Instant updatedAt;
+
     private String description;
 
 }
