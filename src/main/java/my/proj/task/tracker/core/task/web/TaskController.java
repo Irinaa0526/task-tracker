@@ -44,7 +44,7 @@ public class TaskController {
         return project
                 .getTaskStates()
                 .stream()
-                .filter(taskStateId != null ? taskState -> taskState.getTaskStateId() == taskStateId : taskState -> true)
+                .filter(taskStateId != null ? taskState -> taskState.getTaskStateId().equals(taskStateId) : taskState -> true)
                 .flatMap(taskState -> taskState.getTasks().stream())
                 .map(taskToTaskViewConverter::convert)
                 .collect(Collectors.toList());
@@ -124,8 +124,6 @@ public class TaskController {
 
     @DeleteMapping(DELETE_TASK)
     public Boolean deleteTask(@PathVariable(name = "task_id") Long task_id) {
-
-        // todo перед удалением нужно удалить задачу из состояния (как лучше взять состояние ???)
 
         Task task = controllerHelper.getTaskOrThrowException(task_id);
         taskRepo.delete(task);
