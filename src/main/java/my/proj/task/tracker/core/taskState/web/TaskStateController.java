@@ -6,7 +6,6 @@ import my.proj.task.tracker.core.taskState.TaskState;
 import my.proj.task.tracker.core.taskState.TaskStateRepo;
 import my.proj.task.tracker.core.taskState.converter.TaskStateToTaskStateViewConverter;
 import my.proj.task.tracker.error.BadRequestException;
-import my.proj.task.tracker.error.NotFoundException;
 import my.proj.task.tracker.helpers.ControllerHelper;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -97,8 +96,8 @@ public class TaskStateController {
 
         // проверяем, что внутри проекта нет таск стейта с таким же именем (изменяемый таск стейт не в счет)
         taskStateRepo
-                .findTaskStateByProjectIdAndNameContainsIgnoreCase(taskState.getProject().getId(), taskStateName)
-                .filter(anotherTaskState -> !anotherTaskState.getId().equals(taskStateId))
+                .findTaskStateByProjectAndNameContainsIgnoreCase(taskState.getProject().getProjectId(), taskStateName)
+                .filter(anotherTaskState -> !anotherTaskState.getTaskStateId().equals(taskStateId))
                 .ifPresent(anotherTaskState -> {
                     throw new BadRequestException(String.format("Task state '%s' already exists", taskStateName));
                 });
@@ -117,7 +116,7 @@ public class TaskStateController {
         TaskState changeTaskState = controllerHelper.getTaskStateOrThrowException(taskStateId);
         Project project = changeTaskState.getProject();
 
-        Optional<Long> optionalOldLeftTaskStateId = changeTaskState.getLeftTaskState().map(TaskState::getId);
+        Optional<Long> optionalOldLeftTaskStateId = changeTaskState.getLeftTaskState().map(TaskState::getTaskStateId);
 
         // если старый левый сосед == новый левый сосед, тогда просто возвращаем изменяемый таск стейт
         if (optionalOldLeftTaskStateId.equals(optionalLeftTaskStateId)) {
@@ -134,7 +133,7 @@ public class TaskStateController {
                     TaskState leftTaskStateEntity = controllerHelper.getTaskStateOrThrowException(leftTaskStateId);
 
                     // проверяем что найденный таск стейт находится в одном проекте с изменяемым таск стейтом
-                    if (!project.getId().equals(leftTaskStateEntity.getProject().getId())) {
+                    if (!project.getProjectId().equals(leftTaskStateEntity.getProject().getProjectId())) {
                         throw new BadRequestException("Task state position can be changed within the same project");
                     }
                     return leftTaskStateEntity;

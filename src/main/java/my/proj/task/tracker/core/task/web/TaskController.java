@@ -12,6 +12,7 @@ import my.proj.task.tracker.helpers.ControllerHelper;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,9 +29,9 @@ public class TaskController {
     private final ControllerHelper controllerHelper;
 
     public static final String GET_TASKS = "/api/projects/{project_id}/tasks";
-    public static final String CREATE_TASK = "/api/projects/{project_id}/tasks";
-    public static final String UPDATE_TASK = "/api/projects/{task_state_id}/{task_id}";
-    public static final String DELETE_TASK = "/api/tasks/{tasks_id}";
+    public static final String CREATE_TASK = "/api/task_states/{task_state_id}/tasks";
+    public static final String UPDATE_TASK = "/api/task_states/{old_task_state_id}/{task_id}";
+    public static final String DELETE_TASK = "/api/tasks/{task_id}";
 
     @GetMapping(GET_TASKS)
     public List<TaskView> getTasks(@PathVariable(name = "project_id") Long projectId,
@@ -43,7 +44,7 @@ public class TaskController {
         return project
                 .getTaskStates()
                 .stream()
-                .filter(taskStateId != null ? taskState -> taskState.getId() == taskStateId : taskState -> true)
+                .filter(taskStateId != null ? taskState -> taskState.getTaskStateId() == taskStateId : taskState -> true)
                 .flatMap(taskState -> taskState.getTasks().stream())
                 .map(taskToTaskViewConverter::convert)
                 .collect(Collectors.toList());
@@ -51,13 +52,12 @@ public class TaskController {
 
     @PostMapping(CREATE_TASK)
     public TaskView createTask(
-            @PathVariable(name = "project_id") Long projectId,
-            @RequestParam(name = "task_state_id") Long taskStateId,
+            @PathVariable(name = "task_state_id") Long taskStateId,
             @RequestParam(name = "task_name") String taskName,
             @RequestParam(name = "description", required = false) String description) {
 
-        if (taskName.isBlank() || taskStateId == null) {
-            throw new BadRequestException("Task name or task state can't be empty");
+        if (taskName.isBlank()) {
+            throw new BadRequestException("Task name can't be empty");
         }
 
         // берем по id состояние (id состояний не повторяются в рамках всей бд)
@@ -81,18 +81,19 @@ public class TaskController {
     @PatchMapping(UPDATE_TASK)
     public TaskView updateTask(
             @PathVariable(name = "task_id") Long taskId,
-            @PathVariable(name = "task_state_id") Long oldTaskStateId,
+            @PathVariable(name = "old_task_state_id") Long oldTaskStateId,
             @RequestParam(name = "task_state_id", required = false) Long taskStateId,
             @RequestParam(name = "task_name", required = false) String taskName,
             @RequestParam(name = "description", required = false) String description) {
 
-        if (taskStateId == null && taskName.isBlank() && description.isBlank()) {
-            throw new BadRequestException("Task state and task name and description is empty");
-        }
-
         Task task = controllerHelper.getTaskOrThrowException(taskId);
 
-        if (taskStateId != null) {
+        // если изменений нет, то возвращаем тот же таск
+        if (taskStateId == null && taskName == null && description == null) {
+            return taskToTaskViewConverter.convert(task);
+        }
+
+        if (taskStateId != null && !taskStateId.equals(oldTaskStateId)) {
             // добавляем задачу в новое состояние
             TaskState taskState = controllerHelper.getTaskStateOrThrowException(taskStateId);
             taskState.getTasks().add(task);
@@ -104,14 +105,19 @@ public class TaskController {
             taskStateRepo.saveAndFlush(oldTaskState);
         }
 
-        if (!taskName.isBlank())
+        if (taskName != null) {
+            if (taskName.isBlank()) {
+                throw new BadRequestException("Task name can't be empty");
+            }
             task.setName(taskName);
+        }
 
-        if (!description.isBlank())
+        // чтобы обнулить описание таски просто присваиваем ей пустую строку
+        if (description != null)
             task.setDescription(description);
 
-        if (!taskName.isBlank() || !description.isBlank())
-            task = taskRepo.saveAndFlush(task);
+        task.setUpdatedAt(Instant.now());
+        task = taskRepo.saveAndFlush(task);
 
         return taskToTaskViewConverter.convert(task);
     }

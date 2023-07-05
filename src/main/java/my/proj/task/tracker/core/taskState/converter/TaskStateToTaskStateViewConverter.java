@@ -16,10 +16,10 @@ public class TaskStateToTaskStateViewConverter {
 
     public TaskStateView convert(TaskState taskState) {
         return TaskStateView.builder()
-                .id(taskState.getId())
+                .id(taskState.getTaskStateId())
                 .name(taskState.getName())
-                .leftTaskStateId(taskState.getLeftTaskState().map(TaskState::getId).orElse(null))
-                .rightTaskStateId(taskState.getRightTaskState().map(TaskState::getId).orElse(null))
+                .leftTaskStateId(taskState.getLeftTaskState().map(TaskState::getTaskStateId).orElse(null))
+                .rightTaskStateId(taskState.getRightTaskState().map(TaskState::getTaskStateId).orElse(null))
                 .createdAt(taskState.getCreatedAt())
                 .tasks(
                         taskState

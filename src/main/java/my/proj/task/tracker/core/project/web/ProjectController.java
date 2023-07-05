@@ -79,7 +79,7 @@ public class ProjectController {
 
             projectRepo
                     .findByName(projectName)
-                    .filter(anotherProject -> !Objects.equals(anotherProject.getId(), optionalProjectId))
+                    .filter(anotherProject -> !Objects.equals(anotherProject.getProjectId(), optionalProjectId))
                     .ifPresent(anotherProject -> {
                         throw new BadRequestException(String.format("Project with name '%s' already exists", projectName));
                     });

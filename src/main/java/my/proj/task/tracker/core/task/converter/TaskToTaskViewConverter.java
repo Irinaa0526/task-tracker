@@ -9,7 +9,7 @@ public class TaskToTaskViewConverter {
 
     public TaskView convert(Task task) {
         return TaskView.builder()
-                .id(task.getId())
+                .id(task.getTaskId())
                 .name(task.getName())
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())

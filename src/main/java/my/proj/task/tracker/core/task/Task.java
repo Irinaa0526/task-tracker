@@ -16,7 +16,7 @@ public class Task {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private Long id;
+    private Long taskId;
 
     private String name;
 

@@ -9,7 +9,7 @@ public class ProjectToProjectViewConverter {
 
     public ProjectView convert(Project project) {
         return ProjectView.builder()
-                .id(project.getId())
+                .id(project.getProjectId())
                 .name(project.getName())
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())

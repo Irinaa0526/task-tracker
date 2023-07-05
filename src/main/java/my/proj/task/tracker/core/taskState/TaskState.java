@@ -21,7 +21,7 @@ public class TaskState {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private Long id;
+    private Long taskStateId;
 
     private String name;
 
@@ -39,7 +39,7 @@ public class TaskState {
 
     @Builder.Default
     @OneToMany
-    @JoinColumn(name="task_state_id", referencedColumnName = "id")
+    @JoinColumn(name="task_state_id", referencedColumnName = "taskStateId")
     private List<Task> tasks = new ArrayList<>();
 
     public Optional<TaskState> getLeftTaskState() {

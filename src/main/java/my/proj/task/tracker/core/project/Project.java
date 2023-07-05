@@ -19,7 +19,7 @@ public class Project {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private Long id;
+    private Long projectId;
 
     @Column(unique = true)
     private String name;
@@ -32,7 +32,7 @@ public class Project {
 
     @Builder.Default
     @OneToMany
-    @JoinColumn(name = "project_id", referencedColumnName = "id")
+    @JoinColumn(name = "project_id", referencedColumnName = "projectId")
     private List<TaskState> taskStates = new ArrayList<>();
 
 }
