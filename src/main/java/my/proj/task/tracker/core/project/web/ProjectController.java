@@ -2,31 +2,22 @@ package my.proj.task.tracker.core.project.web;
 
 import lombok.RequiredArgsConstructor;
 import my.proj.task.tracker.core.project.ProjectService;
-import my.proj.task.tracker.helpers.ControllerHelper;
-import my.proj.task.tracker.core.project.Project;
-import my.proj.task.tracker.core.project.ProjectRepo;
-import my.proj.task.tracker.core.project.converter.ProjectToProjectViewConverter;
-import my.proj.task.tracker.error.BadRequestException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 @Transactional
 @RestController
 public class ProjectController {
 
+    private final ProjectService service;
+
     public static final String FETCH_PROJECTS = "/api/projects";
     public static final String CREATE_OR_UPDATE_PROJECT = "/api/projects";
     public static final String DELETE_PROJECT = "/api/projects/{project_id}";
-
-    private final ProjectService service;
 
     @GetMapping(FETCH_PROJECTS)
     public List<ProjectView> fetchProjects(

@@ -6,7 +6,6 @@ import my.proj.task.tracker.core.project.web.ProjectView;
 import my.proj.task.tracker.error.BadRequestException;
 import my.proj.task.tracker.helpers.ControllerHelper;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.time.Instant;
 import java.util.List;
