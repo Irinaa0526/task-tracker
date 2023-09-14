@@ -5,14 +5,17 @@ import my.proj.task.tracker.core.project.converter.ProjectToProjectViewConverter
 import my.proj.task.tracker.core.project.web.ProjectView;
 import my.proj.task.tracker.error.BadRequestException;
 import my.proj.task.tracker.helpers.ControllerHelper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 @Service
@@ -22,17 +25,20 @@ public class ProjectService {
     private final ProjectToProjectViewConverter projectToProjectViewConverter;
     private final ControllerHelper controllerHelper;
 
-    public List<ProjectView> fetchProjects (Optional<String> optionalPrefixName) {
-        // проверяем фильтр на пустоту (если пустой - optionalPrefixName будет пустым)
-        optionalPrefixName = optionalPrefixName.filter(prefixName -> !prefixName.isBlank());
+    public Page<ProjectView> fetchProjects (String prefixName, Pageable pageable) {
 
-        Stream<Project> projectStream = optionalPrefixName
-                .map(projectRepo::streamAllByNameStartsWithIgnoreCase)
-                .orElseGet(projectRepo::streamAllBy);
+        Page<Project> projects;
+        if (!StringUtils.hasLength(prefixName)) {
+            projects = projectRepo.findByNameLike(prefixName.toLowerCase(), pageable);
+        }
+        else {
+            projects = projectRepo.findAll(pageable);
+        }
 
-        return projectStream
-                .map(projectToProjectViewConverter::convert)
-                .collect(Collectors.toList());
+        List<ProjectView> projectViews = new ArrayList<>();
+        projects.forEach(project -> projectViews.add(projectToProjectViewConverter.convert(project)));
+
+        return new PageImpl<>(projectViews, pageable, projects.getTotalElements());
     }
 
     public ProjectView createOrUpdateProject(Optional<Long> optionalProjectId, String projectName) {

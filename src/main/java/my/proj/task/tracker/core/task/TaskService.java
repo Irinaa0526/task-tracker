@@ -1,18 +1,20 @@
 package my.proj.task.tracker.core.task;
 
 import lombok.RequiredArgsConstructor;
-import my.proj.task.tracker.core.project.Project;
 import my.proj.task.tracker.core.task.converter.TaskToTaskViewConverter;
 import my.proj.task.tracker.core.task.web.TaskView;
 import my.proj.task.tracker.core.taskState.TaskState;
 import my.proj.task.tracker.core.taskState.TaskStateRepo;
 import my.proj.task.tracker.error.BadRequestException;
 import my.proj.task.tracker.helpers.ControllerHelper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -23,18 +25,20 @@ public class TaskService {
     private final TaskToTaskViewConverter taskToTaskViewConverter;
     private final ControllerHelper controllerHelper;
 
-    public List<TaskView> getTasks(Long projectId, Long taskStateId) {
-        Project project = controllerHelper.getProjectOrThrowException(projectId);
+    public Page<TaskView> getTasks(Long projectId, Long taskStateId, Pageable pageable) {
 
-        // в зависимости от наличия id состояния выводим либо все задачи проекта, либо все задачи
+        Page<Task> tasks;
+         // в зависимости от наличия taskStateId берем либо все задачи проекта, либо все задачи
         // соответствующие указанному состоянию в проекте
-        return project
-                .getTaskStates()
-                .stream()
-                .filter(taskStateId != null ? taskState -> taskState.getTaskStateId().equals(taskStateId) : taskState -> true)
-                .flatMap(taskState -> taskState.getTasks().stream())
-                .map(taskToTaskViewConverter::convert)
-                .collect(Collectors.toList());
+        if (taskStateId == null)
+            tasks = taskRepo.findTaskByProject(projectId, pageable);
+        else
+            tasks = taskRepo.findTaskByTaskStateId(taskStateId, pageable);
+
+        List<TaskView> taskViews = new ArrayList<>();
+        tasks.forEach(task -> taskViews.add(taskToTaskViewConverter.convert(task)));
+
+        return new PageImpl<>(taskViews, pageable, tasks.getTotalElements());
     }
 
     public TaskView createTask(Long taskStateId, String taskName, String description) {

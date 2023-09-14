@@ -34,8 +34,8 @@ public class TaskState {
     @Builder.Default
     private Instant createdAt = Instant.now();
 
-    @ManyToOne
-    private Project project;
+//    @ManyToOne
+//    private Project project;
 
     @Builder.Default
     @OneToMany

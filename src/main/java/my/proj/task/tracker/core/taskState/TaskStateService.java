@@ -2,32 +2,38 @@ package my.proj.task.tracker.core.taskState;
 
 import lombok.RequiredArgsConstructor;
 import my.proj.task.tracker.core.project.Project;
+import my.proj.task.tracker.core.project.ProjectRepo;
 import my.proj.task.tracker.core.taskState.converter.TaskStateToTaskStateViewConverter;
 import my.proj.task.tracker.core.taskState.web.TaskStateView;
 import my.proj.task.tracker.error.BadRequestException;
 import my.proj.task.tracker.helpers.ControllerHelper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
 public class TaskStateService {
 
     private final TaskStateRepo taskStateRepo;
+    private final ProjectRepo projectRepo;
     private final TaskStateToTaskStateViewConverter taskStateToTaskStateViewConverter;
     private final ControllerHelper controllerHelper;
 
-    public List<TaskStateView> getTaskStates(Long projectId) {
-        Project project = controllerHelper.getProjectOrThrowException(projectId);
+    public Page<TaskStateView> getTaskStates(Long projectId, Pageable pageable) {
 
-        return project
-                .getTaskStates()
-                .stream()
-                .map(taskStateToTaskStateViewConverter::convert)
-                .collect(Collectors.toList());
+        Page<TaskState> taskStates;
+        taskStates = taskStateRepo.findTaskStateByProject(projectId, pageable);
+
+        List<TaskStateView> taskStateViews = new ArrayList<>();
+        taskStates.forEach(taskState -> taskStateViews.add(taskStateToTaskStateViewConverter.convert(taskState)));
+
+        return new PageImpl<>(taskStateViews, pageable, taskStates.getTotalElements());
     }
 
     public TaskStateView createTaskState(Long projectId, String taskStateName) {
@@ -50,7 +56,7 @@ public class TaskStateService {
         TaskState taskState = taskStateRepo.saveAndFlush(
                 TaskState.builder()
                         .name(taskStateName)
-                        .project(project)
+//                        .project(project)
                         .build()
         );
 
@@ -62,24 +68,36 @@ public class TaskStateService {
                 });
 
         final TaskState savedTaskState = taskStateRepo.saveAndFlush(taskState);
+        List<TaskState> taskStates = new ArrayList<>(project.getTaskStates());
+        taskStates.add(taskState);
+        project.setTaskStates(taskStates);
+        projectRepo.saveAndFlush(project);
 
         return taskStateToTaskStateViewConverter.convert(savedTaskState);
     }
 
-    public TaskStateView updateTaskState(Long taskStateId, String taskStateName) {
+    public TaskStateView updateTaskState(Long projectId, Long taskStateId, String taskStateName) {
         if (taskStateName.isBlank()) {
             throw new BadRequestException("Task state name can't be empty");
         }
 
         TaskState taskState = controllerHelper.getTaskStateOrThrowException(taskStateId);
+        Project project = controllerHelper.getProjectOrThrowException(projectId);
 
         // проверяем, что внутри проекта нет таск стейта с таким же именем (изменяемый таск стейт не в счет)
-        taskStateRepo
-                .findTaskStateByProjectAndNameContainsIgnoreCase(taskState.getProject().getProjectId(), taskStateName)
-                .filter(anotherTaskState -> !anotherTaskState.getTaskStateId().equals(taskStateId))
-                .ifPresent(anotherTaskState -> {
+        project.getTaskStates()
+                .stream()
+                .filter(ts -> ts.getName().equals(taskStateName) && !ts.getTaskStateId().equals(taskStateId))
+                .findAny()
+                .ifPresent(ts -> {
                     throw new BadRequestException(String.format("Task state '%s' already exists", taskStateName));
                 });
+//        taskStateRepo
+//                .findTaskStateByProjectAndNameContainsIgnoreCase(project.getProjectId(), taskStateName)
+//                .filter(anotherTaskState -> !anotherTaskState.getTaskStateId().equals(taskStateId))
+//                .ifPresent(anotherTaskState -> {
+//                    throw new BadRequestException(String.format("Task state '%s' already exists", taskStateName));
+//                });
 
         taskState.setName(taskStateName);
         taskState = taskStateRepo.saveAndFlush(taskState);
@@ -87,9 +105,9 @@ public class TaskStateService {
         return taskStateToTaskStateViewConverter.convert(taskState);
     }
 
-    public TaskStateView changeTaskStatePosition(Long taskStateId, Optional<Long> optionalLeftTaskStateId) {
+    public TaskStateView changeTaskStatePosition(Long projectId, Long taskStateId, Optional<Long> optionalLeftTaskStateId) {
         TaskState changeTaskState = controllerHelper.getTaskStateOrThrowException(taskStateId);
-        Project project = changeTaskState.getProject();
+        Project project = controllerHelper.getProjectOrThrowException(projectId);
 
         Optional<Long> optionalOldLeftTaskStateId = changeTaskState.getLeftTaskState().map(TaskState::getTaskStateId);
 
@@ -108,7 +126,7 @@ public class TaskStateService {
                     TaskState leftTaskStateEntity = controllerHelper.getTaskStateOrThrowException(leftTaskStateId);
 
                     // проверяем что найденный таск стейт находится в одном проекте с изменяемым таск стейтом
-                    if (!project.getProjectId().equals(leftTaskStateEntity.getProject().getProjectId())) {
+                    if (!project.getTaskStates().contains(leftTaskStateEntity)) {
                         throw new BadRequestException("Task state position can be changed within the same project");
                     }
                     return leftTaskStateEntity;
