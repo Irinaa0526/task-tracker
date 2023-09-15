@@ -11,3 +11,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+
+  flyway:
+    baselineVersion=0:
+    enabled: true
+    locations: classpath:db.migration
+    baseline-on-migrate: true

@@ -23,12 +23,15 @@ public class TaskState {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long taskStateId;
 
+    @Column(unique = true)
     private String name;
 
     @OneToOne
+    @JoinColumn(name="left_task_state_id", referencedColumnName = "taskStateId")
     private TaskState leftTaskState;
 
     @OneToOne
+    @JoinColumn(name="right_task_state_id", referencedColumnName = "taskStateId")
     private TaskState rightTaskState;
 
     @Builder.Default

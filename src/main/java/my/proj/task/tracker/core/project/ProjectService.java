@@ -28,7 +28,7 @@ public class ProjectService {
     public Page<ProjectView> fetchProjects (String prefixName, Pageable pageable) {
 
         Page<Project> projects;
-        if (!StringUtils.hasLength(prefixName)) {
+        if (StringUtils.hasLength(prefixName)) {
             projects = projectRepo.findByNameLike(prefixName.toLowerCase(), pageable);
         }
         else {
